@@ -116,6 +116,7 @@ private:
   bool LoadNewTSFFile(const char* filename);
   void PopulatePresetMenu();
   void clearPresStuff();
+  void loadDefaultPres();
   int FindPresetIndex(int bank, int presetNumber) const;
   void syncPresState();
 

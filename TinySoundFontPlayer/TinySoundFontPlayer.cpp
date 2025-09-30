@@ -267,6 +267,28 @@ void TinySoundFontPlayer::clearPresStuff() {
     mCurrentPresetNumber = 0;
 }
 
+void TinySoundFontPlayer::loadDefaultPres() {
+    tsf* f = gTSFAtomic.load(std::memory_order_acquire);
+
+    if (!f) {
+        return;
+    }
+
+    if (!mPresets.empty()) {
+        PresetData pd = mPresets.front();
+        mCurrentPresetIdx = 0;
+        mCurrentPresetIdxReal = pd.preset_index;
+        mCurrentPresetBank = pd.bank;
+        mCurrentPresetNumber = pd.preset_number;
+
+        displayDirty = true;
+
+        //tsf_channel_set_bank_preset(gTSFAtomic.load(std::memory_order_acquire), 0, mCurrentPresetBank, mCurrentPresetNumber);
+        tsf_channel_set_bank(f, 0, mCurrentPresetBank);
+        tsf_channel_set_presetnumber(f, 0, mCurrentPresetNumber, mCurrentPresetBank >= 127);
+    }
+}
+
 // TODO some vestigal code leftover from previous refactors
 bool TinySoundFontPlayer::LoadNewTSFMemory(const void* data, size_t size)
 {
@@ -281,6 +303,8 @@ bool TinySoundFontPlayer::LoadNewTSFMemory(const void* data, size_t size)
         gTSFAtomic.store(newTSF, std::memory_order_release);
 
         PopulatePresetMenu();
+
+        loadDefaultPres();
     }
 
     return newTSF;
@@ -310,6 +334,8 @@ bool TinySoundFontPlayer::LoadNewTSFFile(const char* filename)
         newTSFShared = shh;
 
         PopulatePresetMenu();
+
+        loadDefaultPres();
     }
 
     return newTSF;
