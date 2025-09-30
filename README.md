@@ -19,4 +19,4 @@ Currently only the AudioUnit build has been tested on ARM macOS, so please repor
 
 ## License
 
-TinySoundFontPlayer is licensed under the MIT license.
+TinySoundFontPlayer is licensed under the MIT license. A copy of this license can be found in the file LICENSE.txt. Additionally, a complete list of licenses and credits for all libraries used in this project can be found in the file CREDITS.txt.
