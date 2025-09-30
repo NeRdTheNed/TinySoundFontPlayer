@@ -1,5 +1,11 @@
 #pragma once
 
+// TODO workaround for issue with M_LN10
+#define _USE_MATH_DEFINES
+#ifndef M_LN10
+#define M_LN10 2.30258509299404568401799145468436420760110148862877297603332790096757260967
+#endif
+
 #include "IPlug_include_in_plug_hdr.h"
 #include "IControls.h"
 #include "tsf.h"
