@@ -16,6 +16,7 @@
 				4F61D8582D7482DA00578AA8 /* PBXTargetDependency */,
 				4F06F18623566DC800FD0962 /* PBXTargetDependency */,
 				4F78DAFA13B6436B0032E0F3 /* PBXTargetDependency */,
+				4F9828F8140A9F0200F3FCC1 /* PBXTargetDependency */,
 			);
 			name = All;
 			productName = All;
@@ -320,6 +321,12 @@
 			proxyType = 1;
 			remoteGlobalIDString = B87FD1E62351C6F900CF7307;
 			remoteInfo = PLists;
+		};
+		4F9828F7140A9F0200F3FCC1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 089C1669FE841209C02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4F9828AA140A9EB700F3FCC1;
 		};
 		B87FD1EF2351C74300CF7307 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -2547,6 +2554,11 @@
 			target = B87FD1E62351C6F900CF7307 /* Update plists */;
 			targetProxy = 4F8E0FE12BF5F3B500D360CE /* PBXContainerItemProxy */;
 		};
+		4F9828F8140A9F0200F3FCC1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4F9828AA140A9EB700F3FCC1 /* VST3 */;
+			targetProxy = 4F9828F7140A9F0200F3FCC1 /* PBXContainerItemProxy */;
+		};
 		B87FD1F02351C74300CF7307 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = B87FD1E62351C6F900CF7307 /* Update plists */;
@@ -2607,7 +2619,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEPLOYMENT_LOCATION = YES;
-				DEVELOPMENT_TEAM = 8N4Q9V7ZK8;
+				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				EXECUTABLE_EXTENSION = "";
@@ -2686,7 +2698,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEPLOYMENT_LOCATION = YES;
-				DEVELOPMENT_TEAM = 8N4Q9V7ZK8;
+				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				EXECUTABLE_EXTENSION = "";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
@@ -3792,7 +3804,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEPLOYMENT_LOCATION = YES;
-				DEVELOPMENT_TEAM = 8N4Q9V7ZK8;
+				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				EXECUTABLE_EXTENSION = "";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;

@@ -5132,7 +5132,9 @@ stb_vorbis * stb_vorbis_open_memory(const unsigned char *data, int len, int *err
 #define C  (PLAYBACK_LEFT  | PLAYBACK_RIGHT | PLAYBACK_MONO)
 #define R  (PLAYBACK_RIGHT | PLAYBACK_MONO)
 
-static int8 channel_position[7][6] =
+// TODO bodge fix: apparently this conflicts with the VST3 SDK
+//static int8 channel_position[7][6] =
+static signed char channel_position[7][6] =
 {
    { 0 },
    { C },
