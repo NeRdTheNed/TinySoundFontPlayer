@@ -1,3 +1,9 @@
+// TODO workaround for issue with M_LN10
+#define _USE_MATH_DEFINES
+#ifndef M_LN10
+#define M_LN10 2.30258509299404568401799145468436420760110148862877297603332790096757260967
+#endif
+
 /* TinySoundFont - v0.9 - SoundFont2 synthesizer - https://github.com/schellingb/TinySoundFont
 									 no warranty implied; use at your own risk
    Do this:
