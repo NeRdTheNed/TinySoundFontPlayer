@@ -620,9 +620,13 @@ void TinySoundFontPlayer::ProcessBlock(sample** inputs, sample** outputs, int nF
 
     mMidiQueue.Flush(nFrames);
 
+  double* smoothVals = mModulations.GetList()[kModGainSmoother];
+
   for(int s=0; s < nFrames;s++)
   {
-    double smoothedGain = mModulations.GetList()[kModGainSmoother][s];
+    double smoothedGain = smoothVals[s];
+    // TODO benchmark this, I think it should be faster
+    if (smoothedGain == 1.0f) continue;
     outputs[0][s] *= (float)smoothedGain;
     outputs[1][s] *= (float)smoothedGain;
   }
