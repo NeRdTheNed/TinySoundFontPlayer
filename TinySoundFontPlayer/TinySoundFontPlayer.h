@@ -6,9 +6,9 @@
 #include "Smoothers.h"
 
 // TODO Linking issue is preventing this from compiling on macOS, fix later
-#ifndef __APPLE__
+//#ifndef __APPLE__
 #define METERSENDER_NOBUG
-#endif 
+//#endif 
 
 using namespace iplug;
 
