@@ -469,13 +469,7 @@ TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
             }
         };
 
-        pGraphics->AttachControl(new IVButtonControl(buttonBoundsLowerLower, [this, pGraphics](IControl* pCaller) {
-            if (!mPresets.empty()) {
-              pCaller->As<IVButtonControl>()->SetValueStr(mPresets[mCurrentPresetIdx].name.Get());
-            } else {
-              pCaller->As<IVButtonControl>()->SetValueStr("(no presets in SoundFont)");
-            }
-
+        IVButtonControl* pButton = new IVButtonControl(buttonBoundsLowerLower, [this, pGraphics](IControl* pCaller) {
             mMenu.SetFunction([pCaller, this](IPopupMenu* pMenu) {
                 if (pMenu->GetChosenItem()) {
                     this->mCurrentPresetIdx = pMenu->GetChosenItemIdx();
@@ -505,7 +499,15 @@ TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
             float x, y;
             pGraphics->GetMouseDownPoint(x, y);
             pGraphics->CreatePopupMenu(*pCaller, mMenu, x, y);
-        }, "Preset", DEFAULT_STYLE.WithValueText(IText(16)), false, true), kCtrlTagPresetMenu);
+        }, "Preset", DEFAULT_STYLE.WithValueText(IText(16)), false, true);
+
+        if (!mPresets.empty()) {
+            pButton->SetValueStr(mPresets[mCurrentPresetIdx].name.Get());
+        } else {
+            pButton->SetValueStr("(no presets in SoundFont)");
+        }
+
+        pGraphics->AttachControl(pButton, kCtrlTagPresetMenu);
 
         pGraphics->AttachControl(new IVButtonControl(buttonBounds, loadFileFunc, "Load File"));
     };

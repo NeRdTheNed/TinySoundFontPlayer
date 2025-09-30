@@ -15,7 +15,6 @@ Currently only the AudioUnit build has been tested on ARM macOS, so please repor
 
 - MIDI pan / modulators which influence panning are not currently working due to bugs.
 - SoundFont filter features / modulators which influence SoundFont filter are not currently working due to bugs.
-- UI may sometimes not show current preset
 
 ## License
 
