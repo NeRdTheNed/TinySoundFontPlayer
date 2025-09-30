@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>TinySoundFontPlayer</string>
 	<key>CFBundleGetInfoString</key>
-	<string>TinySoundFontPlayer v0.0.0 Copyright 2025 Acme Inc</string>
+	<string>TinySoundFontPlayer v0.0.0 Copyright 2025 Ned Loynd</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.NeRdTheNed.vst3.TinySoundFontPlayer</string>
 	<key>CFBundleInfoDictionaryVersion</key>

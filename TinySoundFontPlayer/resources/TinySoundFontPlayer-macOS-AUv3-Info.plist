@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>TinySoundFontPlayer</string>
 	<key>CFBundleGetInfoString</key>
-	<string>TinySoundFontPlayer v0.0.0 Copyright 2025 Acme Inc</string>
+	<string>TinySoundFontPlayer v0.0.0 Copyright 2025 Ned Loynd</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.NeRdTheNed.app.TinySoundFontPlayer.AUv3</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -34,7 +34,7 @@
 					<key>description</key>
 					<string>TinySoundFontPlayer</string>
 					<key>manufacturer</key>
-					<string>Acme</string>
+					<string>NeRd</string>
 					<key>name</key>
 					<string>NeRdTheNed: TinySoundFontPlayer</string>
 					<key>sandboxSafe</key>
