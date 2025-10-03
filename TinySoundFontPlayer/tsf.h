@@ -134,6 +134,17 @@ enum TSFOutputMode
 	TSF_MONO
 };
 
+// Resampling interpolation modes
+enum TSFInterpolateMode
+{
+	// Simple 2 point linear interpolation
+	TSF_INTERP_LINEAR,
+	// No interpolation, unlikely to sound good although it is the fastest
+	TSF_INTERP_NONE,
+	// 4 point hermite interpolation
+	TSF_INTERP_CUBIC_HERMITE
+};
+
 // Thread safety:
 //
 // 1. Rendering / voices:
@@ -384,6 +395,8 @@ struct tsf
 	unsigned int fontSampleCount;
 	struct tsf_sample * samples;
 	int sampleNum;
+
+	enum TSFInterpolateMode interpolateMode;
 };
 
 //----------------------- loader
@@ -1651,8 +1664,7 @@ static void tsf_voice_calcpitchratio(struct tsf_voice* v, float pitchShift, floa
 	v->pitchOutputFactor = v->region->sample_rate / (tsf_timecents2Secsd(v->region->pitch_keycenter * 100.0) * outSampleRate);
 }
 
-#ifdef TSF_CUBIC_INT
-static inline float cubic_interpolate(float y0, float y1, float y2, float y3, float x)
+static inline float tsf_cubic_interpolate_hermite(float y0, float y1, float y2, float y3, float x)
 {
     // From Polynomial Interpolators for High-Quality Resampling of Oversampled Audio by Olli Niemitalo
     // TODO consider alternative algorithms
@@ -1663,7 +1675,49 @@ static inline float cubic_interpolate(float y0, float y1, float y2, float y3, fl
     float c3 = 1/2.0*(y3-y0) + 3/2.0*(y1-y2);
     return ((c3*x+c2)*x+c1)*x+c0;
 }
-#endif
+
+static inline float tsf_get_sample(tsf* f, struct tsf_voice* v, float* input, double tmpSourceSamplePosition, unsigned int tmpLoopStart, unsigned int tmpLoopEnd, unsigned int tmpSampleEnd, TSF_BOOL isLooping)
+{
+	switch (f->interpolateMode)
+	{
+		case TSF_INTERP_CUBIC_HERMITE: {
+			unsigned int pos = (unsigned int)tmpSourceSamplePosition;
+			float alpha = (float)(tmpSourceSamplePosition - pos);
+
+			float y0, y1, y2, y3;
+
+			if (isLooping) {
+				unsigned int p1 = pos;
+				unsigned int p2 = (p1 >= tmpLoopEnd ? tmpLoopStart : p1 + 1);
+				unsigned int p3 = (p2 >= tmpLoopEnd ? tmpLoopStart : p2 + 1);
+
+				y0 = (pos == v->loopStart ? input[tmpLoopEnd] : pos == 0 ? 0.0f : input[pos - 1]);
+				y1 = input[p1];
+				y2 = input[p2];
+				y3 = input[p3];
+			} else {
+				y0 = pos == 0 ? 0.0f : input[pos - 1];
+				y1 = input[pos];
+				y2 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
+				y3 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
+			}
+
+			return tsf_cubic_interpolate_hermite(y0, y1, y2, y3, alpha);
+		}
+		case TSF_INTERP_NONE: {
+			return input[(unsigned int)tmpSourceSamplePosition];
+		}
+		default: {
+			unsigned int pos = (unsigned int)tmpSourceSamplePosition;
+			unsigned int nextPos1 = (pos >= tmpLoopEnd && isLooping ? tmpLoopStart : pos + 1);
+
+			// Simple linear interpolation.
+			float alpha = (float)(tmpSourceSamplePosition - pos);
+			return (input[pos] * (1.0f - alpha) + input[nextPos1] * alpha);
+		}
+	}
+}
+
 
 TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* outputBufferL, float* outputBufferR, int numSamples)
 {
@@ -1728,7 +1782,7 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 		if (tmpInitialFilterQ < 0) tmpInitialFilterQ = 0;
 		else if (tmpInitialFilterQ > 960) tmpInitialFilterQ = 960;
 	}
-	else tmpInitialFilterFc = 0, tmpModLfoToFilterFc = 0, tmpModEnvToFilterFc = 0, tmpLowpass.active = false;
+	else tmpInitialFilterFc = 0, tmpModLfoToFilterFc = 0, tmpModEnvToFilterFc = 0, tmpLowpass.active = TSF_FALSE;
 
 	if (dynamicPitchRatio) pitchRatio = 0, tmpModLfoToPitch = (float)region->modLfoToPitch, tmpVibLfoToPitch = (float)v->vibLfoToPitch, tmpModEnvToPitch = (float)region->modEnvToPitch;
 	else pitchRatio = tsf_timecents2Secsd(v->pitchInputTimecents) * v->pitchOutputFactor, tmpModLfoToPitch = 0, tmpVibLfoToPitch = 0, tmpModEnvToPitch = 0;
@@ -1770,60 +1824,7 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 				gainLeft = gainMono * v->panFactorLeft, gainRight = gainMono * v->panFactorRight;
 				while (blockSamples-- && tmpSourceSamplePosition < tmpSampleEndDbl)
 				{
-#ifndef TSF_CUBIC_INT
-					unsigned int pos = (unsigned int)tmpSourceSamplePosition;
-					unsigned int nextPos1 = (pos >= tmpLoopEnd && isLooping ? tmpLoopStart : pos + 1);
-
-					// TODO: for cubic sampler
-					//unsigned int nextPos2 = (nextPos1 >= tmpLoopEnd && isLooping ? tmpLoopStart : nextPos1 + 1);
-					//unsigned int nextPos3 = (nextPos2 >= tmpLoopEnd && isLooping ? tmpLoopStart : nextPos2 + 1);
-
-					// Simple linear interpolation.
-					float alpha = (float)(tmpSourceSamplePosition - pos);
-					float val = (input[pos] * (1.0f - alpha) + input[nextPos1] * alpha);
-#else
-					unsigned int pos = (unsigned int)tmpSourceSamplePosition;
-					float alpha = (float)(tmpSourceSamplePosition - pos);
-					
-					float y0, y1, y2, y3;
-					
-					if (isLooping) {
-#ifdef TSF_CUBIC_INT_JANK
-						unsigned int p0 = pos;
-						unsigned int p1 = (p0 >= tmpLoopEnd ? tmpLoopStart : p0 + 1);
-						unsigned int p2 = (p1 >= tmpLoopEnd ? tmpLoopStart : p1 + 1);
-						unsigned int p3 = (p2 >= tmpLoopEnd ? tmpLoopStart : p2 + 1);
-						
-						y0 = input[p0];
-						y1 = input[p1];
-						y2 = input[p2];
-						y3 = input[p3];
-#else
-						unsigned int p1 = pos;
-						unsigned int p2 = (p1 >= tmpLoopEnd ? tmpLoopStart : p1 + 1);
-						unsigned int p3 = (p2 >= tmpLoopEnd ? tmpLoopStart : p2 + 1);
-						
-						y0 = (pos == v->loopStart ? input[tmpLoopEnd] : pos == 0 ? 0.0f : input[pos - 1]);
-						y1 = input[p1];
-						y2 = input[p2];
-						y3 = input[p3];
-#endif
-					} else {
-#ifdef TSF_CUBIC_INT_JANK
-						y0 = input[pos];
-						y1 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
-						y2 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
-						y3 = pos + 2 >= tmpSampleEnd ? 0.0f : input[pos + 3];
-#else
-						y0 = pos == 0 ? 0.0f : input[pos - 1];
-						y1 = input[pos];
-						y2 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
-						y3 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
-#endif
-					}
-					
-					float val = cubic_interpolate(y0, y1, y2, y3, alpha);
-#endif
+					float val = tsf_get_sample(f, v, input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping);
 
 					// Low-pass filter.
 					//if (tmpLowpass.active) val = tsf_voice_lowpass_process(&tmpLowpass, val);
@@ -1841,55 +1842,8 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 				gainLeft = gainMono * v->panFactorLeft, gainRight = gainMono * v->panFactorRight;
 				while (blockSamples-- && tmpSourceSamplePosition < tmpSampleEndDbl)
 				{
-#ifndef TSF_CUBIC_INT
-					unsigned int pos = (unsigned int)tmpSourceSamplePosition, nextPos = (pos >= tmpLoopEnd && isLooping ? tmpLoopStart : pos + 1);
+					float val = tsf_get_sample(f, v, input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping);
 
-					// Simple linear interpolation.
-					float alpha = (float)(tmpSourceSamplePosition - pos), val = (input[pos] * (1.0f - alpha) + input[nextPos] * alpha);
-#else
-					unsigned int pos = (unsigned int)tmpSourceSamplePosition;
-					float alpha = (float)(tmpSourceSamplePosition - pos);
-					
-					float y0, y1, y2, y3;
-					
-					if (isLooping) {
-#ifdef TSF_CUBIC_INT_JANK
-						unsigned int p0 = pos;
-						unsigned int p1 = (p0 >= tmpLoopEnd ? tmpLoopStart : p0 + 1);
-						unsigned int p2 = (p1 >= tmpLoopEnd ? tmpLoopStart : p1 + 1);
-						unsigned int p3 = (p2 >= tmpLoopEnd ? tmpLoopStart : p2 + 1);
-						
-						y0 = input[p0];
-						y1 = input[p1];
-						y2 = input[p2];
-						y3 = input[p3];
-#else
-						unsigned int p1 = pos;
-						unsigned int p2 = (p1 >= tmpLoopEnd ? tmpLoopStart : p1 + 1);
-						unsigned int p3 = (p2 >= tmpLoopEnd ? tmpLoopStart : p2 + 1);
-						
-						y0 = (pos == v->loopStart ? input[tmpLoopEnd] : pos == 0 ? 0.0f : input[pos - 1]);
-						y1 = input[p1];
-						y2 = input[p2];
-						y3 = input[p3];
-#endif
-					} else {
-#ifdef TSF_CUBIC_INT_JANK
-						y0 = input[pos];
-						y1 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
-						y2 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
-						y3 = pos + 2 >= tmpSampleEnd ? 0.0f : input[pos + 3];
-#else
-						y0 = pos == 0 ? 0.0f : input[pos - 1];
-						y1 = input[pos];
-						y2 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
-						y3 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
-#endif
-					}
-					
-					float val = cubic_interpolate(y0, y1, y2, y3, alpha);
-#endif
-                    
 					// Low-pass filter.
 					//if (tmpLowpass.active) val = tsf_voice_lowpass_process(&tmpLowpass, val);
 
@@ -1905,54 +1859,7 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 			case TSF_MONO:
 				while (blockSamples-- && tmpSourceSamplePosition < tmpSampleEndDbl)
 				{
-#ifndef TSF_CUBIC_INT
-					unsigned int pos = (unsigned int)tmpSourceSamplePosition, nextPos = (pos >= tmpLoopEnd && isLooping ? tmpLoopStart : pos + 1);
-
-					// Simple linear interpolation.
-					float alpha = (float)(tmpSourceSamplePosition - pos), val = (input[pos] * (1.0f - alpha) + input[nextPos] * alpha);
-#else
-					unsigned int pos = (unsigned int)tmpSourceSamplePosition;
-					float alpha = (float)(tmpSourceSamplePosition - pos);
-					
-					float y0, y1, y2, y3;
-					
-					if (isLooping) {
-#ifdef TSF_CUBIC_INT_JANK
-						unsigned int p0 = pos;
-						unsigned int p1 = (p0 >= tmpLoopEnd ? tmpLoopStart : p0 + 1);
-						unsigned int p2 = (p1 >= tmpLoopEnd ? tmpLoopStart : p1 + 1);
-						unsigned int p3 = (p2 >= tmpLoopEnd ? tmpLoopStart : p2 + 1);
-						
-						y0 = input[p0];
-						y1 = input[p1];
-						y2 = input[p2];
-						y3 = input[p3];
-#else
-						unsigned int p1 = pos;
-						unsigned int p2 = (p1 >= tmpLoopEnd ? tmpLoopStart : p1 + 1);
-						unsigned int p3 = (p2 >= tmpLoopEnd ? tmpLoopStart : p2 + 1);
-						
-						y0 = (pos == v->loopStart ? input[tmpLoopEnd] : pos == 0 ? 0.0f : input[pos - 1]);
-						y1 = input[p1];
-						y2 = input[p2];
-						y3 = input[p3];
-#endif
-					} else {
-#ifdef TSF_CUBIC_INT_JANK
-						y0 = input[pos];
-						y1 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
-						y2 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
-						y3 = pos + 2 >= tmpSampleEnd ? 0.0f : input[pos + 3];
-#else
-						y0 = pos == 0 ? 0.0f : input[pos - 1];
-						y1 = input[pos];
-						y2 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
-						y3 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
-#endif
-					}
-					
-					float val = cubic_interpolate(y0, y1, y2, y3, alpha);
-#endif
+					float val = tsf_get_sample(f, v, input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping);
 
 					// Low-pass filter.
 					//if (tmpLowpass.active) val = tsf_voice_lowpass_process(&tmpLowpass, val);

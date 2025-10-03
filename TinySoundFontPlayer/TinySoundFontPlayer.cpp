@@ -16,6 +16,7 @@
 // TODO figure out why the preset name stops showing up once you open and close the GUI
 // TODO add option to force play notes outside of soundfont range (e.g. if soundfont only goes to C5 make it possible to play notes higher)
 // TODO only apply gain if non-default to save CPU cycles
+// TODO add dropdown option to switch interpolation mode (cubic_interpolate, linear, nearest etc)
 
 #define STB_VORBIS_HEADER_ONLY
 #include "stb_vorbis.c"
@@ -300,6 +301,7 @@ bool TinySoundFontPlayer::LoadNewTSFMemory(const void* data, size_t size)
         // TODO consider making this changeable
         tsf_set_max_voices(newTSF, MAXVOICES);
 #endif
+        newTSF->interpolateMode = TSF_INTERP_CUBIC_HERMITE;
         gTSFAtomic.store(newTSF, std::memory_order_release);
 
         PopulatePresetMenu();
@@ -329,6 +331,7 @@ bool TinySoundFontPlayer::LoadNewTSFFile(const char* filename)
         // TODO consider making this changeable
         tsf_set_max_voices(newTSF, MAXVOICES);
 #endif
+        newTSF->interpolateMode = TSF_INTERP_CUBIC_HERMITE;
         gTSFAtomic.store(newTSF, std::memory_order_release);
 
         newTSFShared = shh;
@@ -681,6 +684,7 @@ void TinySoundFontPlayer::OnReset()
         // TODO consider making this changeable
         tsf_set_max_voices(tsfPtr, MAXVOICES);
 #endif
+        tsfPtr->interpolateMode = TSF_INTERP_CUBIC_HERMITE;
     }
 
     int blockSize = GetBlockSize();

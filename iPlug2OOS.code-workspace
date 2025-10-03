@@ -68,7 +68,8 @@
 			"vector": "cpp",
 			"algorithm": "cpp",
 			"unordered_set": "cpp",
-			"condition_variable": "cpp"
+			"condition_variable": "cpp",
+			"stb_vorbis.c": "cpp"
 		},
 	}
 }

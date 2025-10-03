@@ -1,6 +1,6 @@
 # TinySoundFontPlayer
 
-TinySoundFontPlayer is an [iPlug2](https://github.com/iPlug2/iPlug2) based SoundFont player, made with a modified version of [TinySoundFont](https://github.com/NeRdTheNed/TinySoundFont/tree/temp). These modifications are a combination of the work done by [firodj](https://github.com/firodj/tsf) and [atsushieno](https://github.com/atsushieno/TinySoundFont/tree/split-render), plus a few bodge fixes and enhancements by me.
+TinySoundFontPlayer is an [iPlug2](https://github.com/iPlug2/iPlug2) based SoundFont player, made with a modified version of [TinySoundFont](https://github.com/NeRdTheNed/TinySoundFont/tree/temp2). These modifications are a combination of the work done by [firodj](https://github.com/firodj/tsf) and [atsushieno](https://github.com/atsushieno/TinySoundFont/tree/split-render), plus a few bodge fixes and enhancements by me.
 
 Currently only the AudioUnit build has been tested on ARM macOS, so please report any bugs you find!
 
