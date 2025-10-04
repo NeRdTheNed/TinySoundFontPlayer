@@ -301,7 +301,8 @@ bool TinySoundFontPlayer::LoadNewTSFMemory(const void* data, size_t size)
         // TODO consider making this changeable
         tsf_set_max_voices(newTSF, MAXVOICES);
 #endif
-        newTSF->interpolateMode = TSF_INTERP_CUBIC_HERMITE;
+        TSFInterpolateMode intMode = static_cast<TSFInterpolateMode>(GetParam(kParamInterpolation)->Int());
+        newTSF->interpolateMode = intMode;
         gTSFAtomic.store(newTSF, std::memory_order_release);
 
         PopulatePresetMenu();
@@ -331,7 +332,8 @@ bool TinySoundFontPlayer::LoadNewTSFFile(const char* filename)
         // TODO consider making this changeable
         tsf_set_max_voices(newTSF, MAXVOICES);
 #endif
-        newTSF->interpolateMode = TSF_INTERP_CUBIC_HERMITE;
+        TSFInterpolateMode intMode = static_cast<TSFInterpolateMode>(GetParam(kParamInterpolation)->Int());
+        newTSF->interpolateMode = intMode;
         gTSFAtomic.store(newTSF, std::memory_order_release);
 
         newTSFShared = shh;
@@ -389,10 +391,13 @@ void TinySoundFontPlayer::PopulatePresetMenu()
     }
 }
 
+#define TSFP_INTERP_VALIST "Linear", "None", "Cubic (hermite)"
+
 TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
 : iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets))
 {
     GetParam(kParamGain)->InitDouble("Gain", 100., 0., 100.0, 0.01, "%");
+    GetParam(kParamInterpolation)->InitEnum("Sample interpolation", TSF_INTERP_CUBIC_HERMITE, {TSFP_INTERP_VALIST});
 
 #if IPLUG_EDITOR
     mMakeGraphicsFunc = [&]() {
@@ -441,6 +446,7 @@ TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
         IRECT buttonBounds = buttonBoundsTemp.GetFromBottom(35);
         IRECT buttonBoundsLower = buttonBoundsTemp.GetFromTop(35);
         IRECT buttonBoundsLowerLower = controls2.GetGridCell(1, 2, 2).GetCentredInside(200, 50);
+        IRECT buttonBoundsLowerLowerLower = controls2.GetGridCell(2, 2, 2).GetCentredInside(200, 50);
 
         pGraphics->AttachControl(new IVLabelControl(buttonBoundsLower, sf2DisplayStr.c_str(), DEFAULT_STYLE.WithDrawFrame(false)), kCtrlTagSF2Name);
 
@@ -513,6 +519,8 @@ TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
         pGraphics->AttachControl(pButton, kCtrlTagPresetMenu);
 
         pGraphics->AttachControl(new IVButtonControl(buttonBounds, loadFileFunc, "Load File"));
+
+        pGraphics->AttachControl(new IVMenuButtonControl(buttonBoundsLowerLowerLower, kParamInterpolation, "Sample interpolation"));
     };
 #endif
 
@@ -684,7 +692,8 @@ void TinySoundFontPlayer::OnReset()
         // TODO consider making this changeable
         tsf_set_max_voices(tsfPtr, MAXVOICES);
 #endif
-        tsfPtr->interpolateMode = TSF_INTERP_CUBIC_HERMITE;
+        TSFInterpolateMode intMode = static_cast<TSFInterpolateMode>(GetParam(kParamInterpolation)->Int());
+        tsfPtr->interpolateMode = intMode;
     }
 
     int blockSize = GetBlockSize();
@@ -718,6 +727,17 @@ void TinySoundFontPlayer::OnParamChange(int paramIdx)
       //tsf_channel_set_volume(); TODO?
       // ALSO TODO make MIDI volume change gain knob
       break;
+    case kParamInterpolation:
+    {
+      TSFInterpolateMode intMode = static_cast<TSFInterpolateMode>(value);
+      tsf* tsfPtr = gTSFAtomic.load(std::memory_order_acquire);
+        
+      if (tsfPtr)
+      {
+        tsfPtr->interpolateMode = intMode;
+      }
+      break;
+    }
     /*case kParamSustain:
       mParamsToSmooth[kModSustainSmoother] = (T) value / 100.;
       break;

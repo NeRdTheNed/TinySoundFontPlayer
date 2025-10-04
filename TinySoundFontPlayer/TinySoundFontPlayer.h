@@ -34,6 +34,7 @@ enum EParams
   //kParamLFORateTempo,
   //kParamLFORateMode,
   //kParamLFODepth,
+  kParamInterpolation,
   kNumParams
 };
 
