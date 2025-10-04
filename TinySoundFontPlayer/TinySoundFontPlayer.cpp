@@ -391,13 +391,13 @@ void TinySoundFontPlayer::PopulatePresetMenu()
     }
 }
 
-#define TSFP_INTERP_VALIST "Linear", "None", "Cubic (hermite)"
+#define TSFP_INTERP_VALIST "Linear", "None", "Cubic (hermite)", "Cubic (lagrange)"
 
 TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
 : iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets))
 {
     GetParam(kParamGain)->InitDouble("Gain", 100., 0., 100.0, 0.01, "%");
-    GetParam(kParamInterpolation)->InitEnum("Sample interpolation", TSF_INTERP_CUBIC_HERMITE, {TSFP_INTERP_VALIST});
+    GetParam(kParamInterpolation)->InitEnum("Sample interpolation", TSF_INTERP_LINEAR, {TSFP_INTERP_VALIST});
 
 #if IPLUG_EDITOR
     mMakeGraphicsFunc = [&]() {

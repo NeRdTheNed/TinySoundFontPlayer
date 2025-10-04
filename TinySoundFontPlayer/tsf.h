@@ -142,7 +142,9 @@ enum TSFInterpolateMode
 	// No interpolation, unlikely to sound good although it is the fastest
 	TSF_INTERP_NONE,
 	// 4 point hermite interpolation
-	TSF_INTERP_CUBIC_HERMITE
+	TSF_INTERP_CUBIC_HERMITE,
+	// 4 point Lagrange interpolation
+	TSF_INTERP_CUBIC_LAGRANGE
 };
 
 // Thread safety:
@@ -1667,7 +1669,6 @@ static void tsf_voice_calcpitchratio(struct tsf_voice* v, float pitchShift, floa
 static inline float tsf_cubic_interpolate_hermite(float y0, float y1, float y2, float y3, float x)
 {
     // From Polynomial Interpolators for High-Quality Resampling of Oversampled Audio by Olli Niemitalo
-    // TODO consider alternative algorithms
     // 4-point, 3rd-order Hermite (x-form)
     float c0 = y1;
     float c1 = 1/2.0*(y2-y0);
@@ -1676,33 +1677,58 @@ static inline float tsf_cubic_interpolate_hermite(float y0, float y1, float y2, 
     return ((c3*x+c2)*x+c1)*x+c0;
 }
 
+static inline float tsf_cubic_interpolate_lagrange(float y0, float y1, float y2, float y3, float x)
+{
+    // From Polynomial Interpolators for High-Quality Resampling of Oversampled Audio by Olli Niemitalo
+    // 4-point, 3rd-order Lagrange (x-form)
+    float c0 = y1;
+    float c1 = y2 - 1/3.0*y0 - 1/2.0*y1 - 1/6.0*y3;
+    float c2 = 1/2.0*(y0+y2) - y1;
+    float c3 = 1/6.0*(y3-y0) + 1/2.0*(y1-y2);
+    return ((c3*x+c2)*x+c1)*x+c0;
+}
+
+// TODO Rewrite this
 static inline float tsf_get_sample(tsf* f, struct tsf_voice* v, float* input, double tmpSourceSamplePosition, unsigned int tmpLoopStart, unsigned int tmpLoopEnd, unsigned int tmpSampleEnd, TSF_BOOL isLooping)
 {
 	switch (f->interpolateMode)
 	{
-		case TSF_INTERP_CUBIC_HERMITE: {
-			unsigned int pos = (unsigned int)tmpSourceSamplePosition;
-			float alpha = (float)(tmpSourceSamplePosition - pos);
+		{
+			// TODO This is stupid and probably slow
+			TSF_BOOL herm;
 
-			float y0, y1, y2, y3;
+			case TSF_INTERP_CUBIC_HERMITE:
+			herm = TSF_TRUE;
+			goto getsampledatacubic;
 
-			if (isLooping) {
-				unsigned int p1 = pos;
-				unsigned int p2 = (p1 >= tmpLoopEnd ? tmpLoopStart : p1 + 1);
-				unsigned int p3 = (p2 >= tmpLoopEnd ? tmpLoopStart : p2 + 1);
+			case TSF_INTERP_CUBIC_LAGRANGE:
+			herm = TSF_FALSE;
+			goto getsampledatacubic;
 
-				y0 = (pos == v->loopStart ? input[tmpLoopEnd] : pos == 0 ? 0.0f : input[pos - 1]);
-				y1 = input[p1];
-				y2 = input[p2];
-				y3 = input[p3];
-			} else {
-				y0 = pos == 0 ? 0.0f : input[pos - 1];
-				y1 = input[pos];
-				y2 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
-				y3 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
+			getsampledatacubic: {
+				unsigned int pos = (unsigned int)tmpSourceSamplePosition;
+				float alpha = (float)(tmpSourceSamplePosition - pos);
+
+				float y0, y1, y2, y3;
+
+				if (isLooping) {
+					unsigned int p1 = pos;
+					unsigned int p2 = (p1 >= tmpLoopEnd ? tmpLoopStart : p1 + 1);
+					unsigned int p3 = (p2 >= tmpLoopEnd ? tmpLoopStart : p2 + 1);
+
+					y0 = (pos == v->loopStart ? input[tmpLoopEnd] : pos == 0 ? 0.0f : input[pos - 1]);
+					y1 = input[p1];
+					y2 = input[p2];
+					y3 = input[p3];
+				} else {
+					y0 = pos == 0 ? 0.0f : input[pos - 1];
+					y1 = input[pos];
+					y2 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
+					y3 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
+				}
+
+				return herm ? tsf_cubic_interpolate_hermite(y0, y1, y2, y3, alpha) : tsf_cubic_interpolate_lagrange(y0, y1, y2, y3, alpha);
 			}
-
-			return tsf_cubic_interpolate_hermite(y0, y1, y2, y3, alpha);
 		}
 		case TSF_INTERP_NONE: {
 			return input[(unsigned int)tmpSourceSamplePosition];
@@ -1790,6 +1816,8 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 	if (dynamicGain) tmpModLfoToVolume = (float)region->modLfoToVolume * 0.1f;
 	else noteGain = tsf_decibelsToGain(v->noteGainDB), tmpModLfoToVolume = 0;
 
+	enum TSFOutputMode outputMode = f->outputmode;
+
 	while (numSamples)
 	{
 		float gainMono, gainLeft, gainRight;
@@ -1818,7 +1846,7 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 		if (updateModLFO) tsf_voice_lfo_process(&v->modlfo, blockSamples);
 		if (updateVibLFO) tsf_voice_lfo_process(&v->viblfo, blockSamples);
 
-		switch (f->outputmode)
+		switch (outputMode)
 		{
 			case TSF_STEREO_INTERLEAVED:
 				gainLeft = gainMono * v->panFactorLeft, gainRight = gainMono * v->panFactorRight;
