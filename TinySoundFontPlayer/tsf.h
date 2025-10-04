@@ -141,12 +141,20 @@ enum TSFInterpolateMode
 	TSF_INTERP_LINEAR,
 	// No interpolation, unlikely to sound good although it is the fastest
 	TSF_INTERP_NONE,
-	// 4 point hermite interpolation
+	// 4 point Watte interpolation
+	TSF_INTERP_WATTE_4P,
+	// 4 point Hermite interpolation
 	TSF_INTERP_HERMITE_4P,
 	// 4 point Lagrange interpolation
 	TSF_INTERP_LAGRANGE_4P,
 	// 4 point bspline interpolation
-	TSF_INTERP_BSPLINE_4P
+	TSF_INTERP_BSPLINE_4P,
+	// 6 point Hermite interpolation
+	TSF_INTERP_HERMITE_6P,
+	// 6 point Lagrange interpolation
+	TSF_INTERP_LAGRANGE_6P,
+	// 6 point bspline interpolation
+	TSF_INTERP_BSPLINE_6P
 };
 
 // Thread safety:
@@ -1702,6 +1710,72 @@ static inline float tsf_interpolate_lagrange_4p(float y0, float y1, float y2, fl
     return ((c3*x+c2)*x+c1)*x+c0;
 }
 
+static inline float tsf_interpolate_watte_4p(float y0, float y1, float y2, float y3, float x)
+{
+    // From Polynomial Interpolators for High-Quality Resampling of Oversampled Audio by Olli Niemitalo
+    // 4-point, 2nd-order Watte tri-linear (x-form)
+    float ym1py2 = y0+y3;
+    float c0 = y1;
+    float c1 = 3/2.0*y2 - 1/2.0*(y1+ym1py2);
+    float c2 = 1/2.0*(ym1py2-y1-y2);
+    return (c2*x+c1)*x+c0;
+}
+
+static inline float tsf_interpolate_hermite_6p(float y0, float y1, float y2, float y3, float y4, float y5, float x)
+{
+    // From Polynomial Interpolators for High-Quality Resampling of Oversampled Audio by Olli Niemitalo
+    // 6-point, 5th-order Hermite (x-form)
+    float eighthym2 = 1/8.0*y0;
+    float eleventwentyfourthy2 = 11/24.0*y4;
+    float twelfthy3 = 1/12.0*y5;
+    float c0 = y2;
+    float c1 = 1/12.0*(y0-y4) + 2/3.0*(y3-y1);
+    float c2 = 13/12.0*y1 - 25/12.0*y2 + 3/2.0*y3 -
+    eleventwentyfourthy2 + twelfthy3 - eighthym2;
+    float c3 = 5/12.0*y2 - 7/12.0*y3 + 7/24.0*y4 -
+    1/24.0*(y0+y1+y5);
+    float c4 = eighthym2 - 7/12.0*y1 + 13/12.0*y2 - y3 +
+    eleventwentyfourthy2 - twelfthy3;
+    float c5 = 1/24.0*(y5-y0) + 5/24.0*(y1-y4) +
+    5/12.0*(y3-y2);
+    return ((((c5*x+c4)*x+c3)*x+c2)*x+c1)*x+c0;
+}
+
+static inline float tsf_interpolate_lagrange_6p(float y0, float y1, float y2, float y3, float y4, float y5, float x)
+{
+    // From Polynomial Interpolators for High-Quality Resampling of Oversampled Audio by Olli Niemitalo
+    // 6-point, 5th-order Lagrange (x-form)
+    float ym1py1 = y1+y3;
+    float twentyfourthym2py2 = 1/24.0*(y0+y4);
+    float c0 = y2;
+    float c1 = 1/20.0*y0 - 1/2.0*y1 - 1/3.0*y2 + y3 -
+    1/4.0*y4 + 1/30.0*y5;
+    float c2 = 2/3.0*ym1py1 - 5/4.0*y2 - twentyfourthym2py2;
+    float c3 = 5/12.0*y2 - 7/12.0*y3 + 7/24.0*y4 -
+    1/24.0*(y0+y1+y5);
+    float c4 = 1/4.0*y2 - 1/6.0*ym1py1 + twentyfourthym2py2;
+    float c5 = 1/120.0*(y5-y0) + 1/24.0*(y1-y4) +
+    1/12.0*(y3-y2);
+    return ((((c5*x+c4)*x+c3)*x+c2)*x+c1)*x+c0;
+}
+
+static inline float tsf_interpolate_bspline_6p(float y0, float y1, float y2, float y3, float y4, float y5, float x)
+{
+    // From Polynomial Interpolators for High-Quality Resampling of Oversampled Audio by Olli Niemitalo
+    // 6-point, 5th-order B-spline (x-form)
+    float ym2py2 = y0+y4, ym1py1 = y1+y3;
+    float y2mym2 = y4-y0, y1mym1 = y3-y1;
+    float sixthym1py1 = 1/6.0*ym1py1;
+    float c0 = 1/120.0*ym2py2 + 13/60.0*ym1py1 + 11/20.0*y2;
+    float c1 = 1/24.0*y2mym2 + 5/12.0*y1mym1;
+    float c2 = 1/12.0*ym2py2 + sixthym1py1 - 1/2.0*y2;
+    float c3 = 1/12.0*y2mym2 - 1/6.0*y1mym1;
+    float c4 = 1/24.0*ym2py2 - sixthym1py1 + 1/4.0*y2;
+    float c5 = 1/120.0*(y5-y0) + 1/24.0*(y1-y4) +
+    1/12.0*(y3-y2);
+    return ((((c5*x+c4)*x+c3)*x+c2)*x+c1)*x+c0;
+}
+
 // TODO Rewrite this
 static inline float tsf_get_sample_4p(float* input, double tmpSourceSamplePosition, unsigned int tmpLoopStart, unsigned int tmpLoopEnd, unsigned int tmpSampleEnd, TSF_BOOL isLooping, enum TSFInterpolateMode interpMode)
 {
@@ -1725,15 +1799,58 @@ static inline float tsf_get_sample_4p(float* input, double tmpSourceSamplePositi
 		y2 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
 		y3 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
 	}
-	
+
 	switch (interpMode)
 	{
 	  case TSF_INTERP_HERMITE_4P:
 	    return tsf_interpolate_hermite_4p(y0, y1, y2, y3, alpha);
 	  case TSF_INTERP_BSPLINE_4P:
 	    return tsf_interpolate_bspline_4p(y0, y1, y2, y3, alpha);
+	  case TSF_INTERP_WATTE_4P:
+	    return tsf_interpolate_watte_4p(y0, y1, y2, y3, alpha);
 	  default:
 	    return tsf_interpolate_lagrange_4p(y0, y1, y2, y3, alpha);
+	}
+}
+
+// TODO Rewrite this
+static inline float tsf_get_sample_6p(float* input, double tmpSourceSamplePosition, unsigned int tmpLoopStart, unsigned int tmpLoopEnd, unsigned int tmpSampleEnd, TSF_BOOL isLooping, enum TSFInterpolateMode interpMode)
+{
+	unsigned int pos = (unsigned int)tmpSourceSamplePosition;
+	float alpha = (float)(tmpSourceSamplePosition - pos);
+
+	float y0, y1, y2, y3, y4, y5;
+
+	if (isLooping) {
+		unsigned int p1 = pos;
+		unsigned int p2 = (p1 >= tmpLoopEnd ? tmpLoopStart : p1 + 1);
+		unsigned int p3 = (p2 >= tmpLoopEnd ? tmpLoopStart : p2 + 1);
+		unsigned int p4 = (p3 >= tmpLoopEnd ? tmpLoopStart : p3 + 1);
+
+		// TODO I think this would segfault if the loop consists of only one sample, I don't know if it's worth fixing.
+		y0 = (pos == tmpLoopStart ? input[tmpLoopEnd - 1] : pos <= 1 ? 0.0f : input[pos - 2]);
+		y1 = (pos == tmpLoopStart ? input[tmpLoopEnd] : pos == 0 ? 0.0f : input[pos - 1]);
+		y2 = input[p1];
+		y3 = input[p2];
+		y4 = input[p3];
+		y5 = input[p4];
+	} else {
+		y0 = pos <= 1 ? 0.0f : input[pos - 2];
+		y1 = pos == 0 ? 0.0f : input[pos - 1];
+		y2 = input[pos];
+		y3 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
+		y4 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
+		y5 = pos + 2 >= tmpSampleEnd ? 0.0f : input[pos + 3];
+	}
+
+	switch (interpMode)
+	{
+		case TSF_INTERP_HERMITE_6P:
+			return tsf_interpolate_hermite_6p(y0, y1, y2, y3, y4, y5, alpha);
+		case TSF_INTERP_BSPLINE_6P:
+			return tsf_interpolate_bspline_6p(y0, y1, y2, y3, y4, y5, alpha);
+		default:
+			return tsf_interpolate_lagrange_6p(y0, y1, y2, y3, y4, y5, alpha);
 	}
 }
 
@@ -1853,10 +1970,17 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 
 					switch (interpMode)
 					{
+						case TSF_INTERP_WATTE_4P:
 						case TSF_INTERP_HERMITE_4P:
 						case TSF_INTERP_LAGRANGE_4P:
 						case TSF_INTERP_BSPLINE_4P: {
 							val = tsf_get_sample_4p(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, interpMode);
+							break;
+						}
+						case TSF_INTERP_HERMITE_6P:
+						case TSF_INTERP_LAGRANGE_6P:
+						case TSF_INTERP_BSPLINE_6P: {
+							val = tsf_get_sample_6p(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, interpMode);
 							break;
 						}
 						case TSF_INTERP_NONE: {
@@ -1895,10 +2019,17 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 
 					switch (interpMode)
 					{
+						case TSF_INTERP_WATTE_4P:
 						case TSF_INTERP_HERMITE_4P:
 						case TSF_INTERP_LAGRANGE_4P:
 						case TSF_INTERP_BSPLINE_4P: {
 							val = tsf_get_sample_4p(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, interpMode);
+							break;
+						}
+						case TSF_INTERP_HERMITE_6P:
+						case TSF_INTERP_LAGRANGE_6P:
+						case TSF_INTERP_BSPLINE_6P: {
+							val = tsf_get_sample_6p(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, interpMode);
 							break;
 						}
 						case TSF_INTERP_NONE: {
@@ -1936,10 +2067,17 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 
 					switch (interpMode)
 					{
+						case TSF_INTERP_WATTE_4P:
 						case TSF_INTERP_HERMITE_4P:
 						case TSF_INTERP_LAGRANGE_4P:
 						case TSF_INTERP_BSPLINE_4P: {
 							val = tsf_get_sample_4p(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, interpMode);
+							break;
+						}
+						case TSF_INTERP_HERMITE_6P:
+						case TSF_INTERP_LAGRANGE_6P:
+						case TSF_INTERP_BSPLINE_6P: {
+							val = tsf_get_sample_6p(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, interpMode);
 							break;
 						}
 						case TSF_INTERP_NONE: {

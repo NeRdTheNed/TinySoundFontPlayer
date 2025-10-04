@@ -391,7 +391,7 @@ void TinySoundFontPlayer::PopulatePresetMenu()
     }
 }
 
-#define TSFP_INTERP_VALIST "Linear", "None", "4 point cubic Hermite", "4 point Lagrange", "4 point B-spline"
+#define TSFP_INTERP_VALIST "Linear", "None", "4 point Watte", "4 point cubic Hermite", "4 point Lagrange", "4 point B-spline", "6 point cubic Hermite", "6 point Lagrange", "6 point B-spline"
 
 TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
 : iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets))
