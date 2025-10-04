@@ -8,7 +8,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-A list of licenses for all libraries used in this software is reproduced below. In addition to this, I would also like to acknowledge the changes incorporated from forks of TinySoundFont, which were from firodj at https://github.com/firodj/tsf and atsushieno at https://github.com/atsushieno/TinySoundFont/tree/split-render.
+A list of licenses for all libraries used in this software is reproduced below. In addition to this, I would also like to acknowledge the changes incorporated from forks of TinySoundFont, which were from firodj at https://github.com/firodj/tsf and atsushieno at https://github.com/atsushieno/TinySoundFont/tree/split-render, and the audio interpolation methods used from the paper "Polynomial Interpolators for High-Quality Resampling of Oversampled Audio" by Olli Niemitalo.
 
 TinySoundFont license:
 
