@@ -8,7 +8,7 @@ Currently only the AudioUnit build has been tested on ARM macOS, so please repor
 
 - Able to load and play SF2 and SF3 files
 - SoundFont modulators are supported
-- Configurable sample interpolation (none, linear, cubic hermite)
+- Configurable sample interpolation (none, linear, 4 point cubic hermite, 4 point lagrange, 4 point bspline)
 - Responds well to standard MIDI control messages
 
 ## Known issues

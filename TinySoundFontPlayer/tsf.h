@@ -142,9 +142,11 @@ enum TSFInterpolateMode
 	// No interpolation, unlikely to sound good although it is the fastest
 	TSF_INTERP_NONE,
 	// 4 point hermite interpolation
-	TSF_INTERP_CUBIC_HERMITE,
+	TSF_INTERP_HERMITE_4P,
 	// 4 point Lagrange interpolation
-	TSF_INTERP_CUBIC_LAGRANGE
+	TSF_INTERP_LAGRANGE_4P,
+	// 4 point bspline interpolation
+	TSF_INTERP_BSPLINE_4P
 };
 
 // Thread safety:
@@ -1666,7 +1668,19 @@ static void tsf_voice_calcpitchratio(struct tsf_voice* v, float pitchShift, floa
 	v->pitchOutputFactor = v->region->sample_rate / (tsf_timecents2Secsd(v->region->pitch_keycenter * 100.0) * outSampleRate);
 }
 
-static inline float tsf_cubic_interpolate_hermite(float y0, float y1, float y2, float y3, float x)
+static inline float tsf_interpolate_bspline_4p(float y0, float y1, float y2, float y3, float x)
+{
+    // From Polynomial Interpolators for High-Quality Resampling of Oversampled Audio by Olli Niemitalo
+    // 4-point, 3rd-order B-spline (x-form)
+    float ym1py1 = y0+y2;
+    float c0 = 1/6.0*ym1py1 + 2/3.0*y1;
+    float c1 = 1/2.0*(y2-y0);
+    float c2 = 1/2.0*ym1py1 - y1;
+    float c3 = 1/2.0*(y1-y2) + 1/6.0*(y3-y0);
+    return ((c3*x+c2)*x+c1)*x+c0;
+}
+
+static inline float tsf_interpolate_hermite_4p(float y0, float y1, float y2, float y3, float x)
 {
     // From Polynomial Interpolators for High-Quality Resampling of Oversampled Audio by Olli Niemitalo
     // 4-point, 3rd-order Hermite (x-form)
@@ -1677,7 +1691,7 @@ static inline float tsf_cubic_interpolate_hermite(float y0, float y1, float y2, 
     return ((c3*x+c2)*x+c1)*x+c0;
 }
 
-static inline float tsf_cubic_interpolate_lagrange(float y0, float y1, float y2, float y3, float x)
+static inline float tsf_interpolate_lagrange_4p(float y0, float y1, float y2, float y3, float x)
 {
     // From Polynomial Interpolators for High-Quality Resampling of Oversampled Audio by Olli Niemitalo
     // 4-point, 3rd-order Lagrange (x-form)
@@ -1689,7 +1703,7 @@ static inline float tsf_cubic_interpolate_lagrange(float y0, float y1, float y2,
 }
 
 // TODO Rewrite this
-static inline float tsf_get_sample_cub(float* input, double tmpSourceSamplePosition, unsigned int tmpLoopStart, unsigned int tmpLoopEnd, unsigned int tmpSampleEnd, TSF_BOOL isLooping, TSF_BOOL herm)
+static inline float tsf_get_sample_4p(float* input, double tmpSourceSamplePosition, unsigned int tmpLoopStart, unsigned int tmpLoopEnd, unsigned int tmpSampleEnd, TSF_BOOL isLooping, enum TSFInterpolateMode interpMode)
 {
 	unsigned int pos = (unsigned int)tmpSourceSamplePosition;
 	float alpha = (float)(tmpSourceSamplePosition - pos);
@@ -1711,8 +1725,16 @@ static inline float tsf_get_sample_cub(float* input, double tmpSourceSamplePosit
 		y2 = pos >= tmpSampleEnd ? 0.0f : input[pos + 1];
 		y3 = pos + 1 >= tmpSampleEnd ? 0.0f : input[pos + 2];
 	}
-
-	return herm ? tsf_cubic_interpolate_hermite(y0, y1, y2, y3, alpha) : tsf_cubic_interpolate_lagrange(y0, y1, y2, y3, alpha);
+	
+	switch (interpMode)
+	{
+	  case TSF_INTERP_HERMITE_4P:
+	    return tsf_interpolate_hermite_4p(y0, y1, y2, y3, alpha);
+	  case TSF_INTERP_BSPLINE_4P:
+	    return tsf_interpolate_bspline_4p(y0, y1, y2, y3, alpha);
+	  default:
+	    return tsf_interpolate_lagrange_4p(y0, y1, y2, y3, alpha);
+	}
 }
 
 
@@ -1831,12 +1853,10 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 
 					switch (interpMode)
 					{
-						case TSF_INTERP_CUBIC_HERMITE: {
-							val = tsf_get_sample_cub(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, TSF_TRUE);
-							break;
-						}
-						case TSF_INTERP_CUBIC_LAGRANGE: {
-							val = tsf_get_sample_cub(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, TSF_FALSE);
+						case TSF_INTERP_HERMITE_4P:
+						case TSF_INTERP_LAGRANGE_4P:
+						case TSF_INTERP_BSPLINE_4P: {
+							val = tsf_get_sample_4p(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, interpMode);
 							break;
 						}
 						case TSF_INTERP_NONE: {
@@ -1875,12 +1895,10 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 
 					switch (interpMode)
 					{
-						case TSF_INTERP_CUBIC_HERMITE: {
-							val = tsf_get_sample_cub(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, TSF_TRUE);
-							break;
-						}
-						case TSF_INTERP_CUBIC_LAGRANGE: {
-							val = tsf_get_sample_cub(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, TSF_FALSE);
+						case TSF_INTERP_HERMITE_4P:
+						case TSF_INTERP_LAGRANGE_4P:
+						case TSF_INTERP_BSPLINE_4P: {
+							val = tsf_get_sample_4p(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, interpMode);
 							break;
 						}
 						case TSF_INTERP_NONE: {
@@ -1918,12 +1936,10 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 
 					switch (interpMode)
 					{
-						case TSF_INTERP_CUBIC_HERMITE: {
-							val = tsf_get_sample_cub(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, TSF_TRUE);
-							break;
-						}
-						case TSF_INTERP_CUBIC_LAGRANGE: {
-							val = tsf_get_sample_cub(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, TSF_FALSE);
+						case TSF_INTERP_HERMITE_4P:
+						case TSF_INTERP_LAGRANGE_4P:
+						case TSF_INTERP_BSPLINE_4P: {
+							val = tsf_get_sample_4p(input, tmpSourceSamplePosition, tmpLoopStart, tmpLoopEnd, tmpSampleEnd, isLooping, interpMode);
 							break;
 						}
 						case TSF_INTERP_NONE: {
