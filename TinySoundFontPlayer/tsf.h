@@ -1818,8 +1818,11 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 		if (updateModLFO) tsf_voice_lfo_process(&v->modlfo, blockSamples);
 		if (updateVibLFO) tsf_voice_lfo_process(&v->viblfo, blockSamples);
 
+#ifndef TSF_ONLY_UNWEAVED
 		switch (outputMode)
+#endif
 		{
+#ifndef TSF_ONLY_UNWEAVED
 			case TSF_STEREO_INTERLEAVED:
 				gainLeft = gainMono * v->panFactorLeft, gainRight = gainMono * v->panFactorRight;
 				while (blockSamples-- && tmpSourceSamplePosition < tmpSampleEndDbl)
@@ -1864,6 +1867,7 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 				break;
 
 			case TSF_STEREO_UNWEAVED:
+#endif
 				gainLeft = gainMono * v->panFactorLeft, gainRight = gainMono * v->panFactorRight;
 				while (blockSamples-- && tmpSourceSamplePosition < tmpSampleEndDbl)
 				{
@@ -1904,6 +1908,7 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 					tmpSourceSamplePosition += pitchRatio;
 					if (tmpSourceSamplePosition >= tmpLoopEndDbl && isLooping) tmpSourceSamplePosition -= (tmpLoopEnd - tmpLoopStart + 1.0);
 				}
+#ifndef TSF_ONLY_UNWEAVED
 				break;
 
 			case TSF_MONO:
@@ -1946,6 +1951,7 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 					if (tmpSourceSamplePosition >= tmpLoopEndDbl && isLooping) tmpSourceSamplePosition -= (tmpLoopEnd - tmpLoopStart + 1.0);
 				}
 				break;
+#endif
 		}
 
 		if (tmpSourceSamplePosition >= tmpSampleEndDbl || v->ampenv.segment == TSF_SEGMENT_DONE)
