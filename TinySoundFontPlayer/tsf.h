@@ -137,10 +137,10 @@ enum TSFOutputMode
 // Resampling interpolation modes
 enum TSFInterpolateMode
 {
-	// Simple 2 point linear interpolation
-	TSF_INTERP_LINEAR,
 	// No interpolation, unlikely to sound good although it is the fastest
 	TSF_INTERP_NONE,
+	// Simple 2 point linear interpolation
+	TSF_INTERP_LINEAR,
 	// 4 point Watte interpolation
 	TSF_INTERP_WATTE_4P,
 	// 4 point Hermite interpolation
