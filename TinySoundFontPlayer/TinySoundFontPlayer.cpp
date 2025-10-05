@@ -695,6 +695,8 @@ void TinySoundFontPlayer::OnIdle()
         tsf* tsfPtr = gTSFAtomic.load(std::memory_order_acquire);
         
         if (tsfPtr) {
+            const int ch = 0;
+            tsf_channel_sounds_off_all(tsfPtr, ch);
             tsf_set_output(tsfPtr, TSF_STEREO_UNWEAVED, GetSampleRate() * (double)overSampler.GetRate(), 0);
         }
         
@@ -713,6 +715,8 @@ void TinySoundFontPlayer::OnReset()
     tsf* tsfPtr = gTSFAtomic.load(std::memory_order_acquire);
     if (tsfPtr)
     {
+        const int ch = 0;
+        tsf_channel_sounds_off_all(tsfPtr, ch);
         tsf_set_output(tsfPtr, TSF_STEREO_UNWEAVED, GetSampleRate() * (double)overSampler.GetRate(), 0);
 #ifdef MAXVOICES
         // TODO consider making this changeable
