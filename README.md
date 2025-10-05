@@ -13,6 +13,7 @@ Currently only the AudioUnit build has been tested on ARM macOS, so please repor
   - Linear (default)
   - 4 point Watte, cubic Hermite, Lagrange, bspline
   - 6 point cubic Hermite, Lagrange, bspline
+- Oversampling support (none, 2x, 4x, 8x, 16x)
 - Responds well to standard MIDI control messages
 
 ## Known issues
