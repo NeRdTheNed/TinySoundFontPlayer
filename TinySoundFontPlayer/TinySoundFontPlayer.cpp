@@ -296,7 +296,7 @@ bool TinySoundFontPlayer::LoadNewTSFMemory(const void* data, size_t size)
     tsf* newTSF = tsf_load_memory(data, size);
     if (newTSF)
     {
-        tsf_set_output(newTSF, TSF_STEREO_UNWEAVED, GetSampleRate(), 0);
+        tsf_set_output(newTSF, TSF_STEREO_UNWEAVED, GetSampleRate() * (double)overSampler.GetRate(), 0);
 #ifdef MAXVOICES
         // TODO consider making this changeable
         tsf_set_max_voices(newTSF, MAXVOICES);
@@ -327,7 +327,7 @@ bool TinySoundFontPlayer::LoadNewTSFFile(const char* filename)
 
     if (newTSF)
     {
-        tsf_set_output(newTSF, TSF_STEREO_UNWEAVED, GetSampleRate(), 0);
+        tsf_set_output(newTSF, TSF_STEREO_UNWEAVED, GetSampleRate() * (double)overSampler.GetRate(), 0);
 #ifdef MAXVOICES
         // TODO consider making this changeable
         tsf_set_max_voices(newTSF, MAXVOICES);
@@ -398,6 +398,7 @@ TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
 {
     GetParam(kParamGain)->InitDouble("Gain", 100., 0., 100.0, 0.01, "%");
     GetParam(kParamInterpolation)->InitEnum("Sample interpolation", TSF_INTERP_LINEAR, {TSFP_INTERP_VALIST});
+    GetParam(kParamOversampling)->InitEnum("Oversampling", EFactor::kNone, {OVERSAMPLING_FACTORS_VA_LIST});
 
 #if IPLUG_EDITOR
     mMakeGraphicsFunc = [&]() {
@@ -447,6 +448,7 @@ TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
         IRECT buttonBoundsLower = buttonBoundsTemp.GetFromTop(35);
         IRECT buttonBoundsLowerLower = controls2.GetGridCell(1, 2, 2).GetCentredInside(200, 50);
         IRECT buttonBoundsLowerLowerLower = controls2.GetGridCell(2, 2, 2).GetCentredInside(200, 50);
+        IRECT buttonBoundsLowerLowerLowerRight = controls2.GetGridCell(3, 2, 2).GetCentredInside(200, 50);
 
         pGraphics->AttachControl(new IVLabelControl(buttonBoundsLower, sf2DisplayStr.c_str(), DEFAULT_STYLE.WithDrawFrame(false)), kCtrlTagSF2Name);
 
@@ -521,6 +523,8 @@ TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
         pGraphics->AttachControl(new IVButtonControl(buttonBounds, loadFileFunc, "Load File"));
 
         pGraphics->AttachControl(new IVMenuButtonControl(buttonBoundsLowerLowerLower, kParamInterpolation, "Sample interpolation"));
+
+        pGraphics->AttachControl(new IVMenuButtonControl(buttonBoundsLowerLowerLowerRight, kParamOversampling, "Oversampling"));
     };
 #endif
 
@@ -574,7 +578,15 @@ void TinySoundFontPlayer::ProcessBlock(sample** inputs, sample** outputs, int nF
         if (framesToRender > 0)
         {
 #ifdef SAMPLE_TYPE_FLOAT
-            tsf_render_float_separate(tsfPtr, &outputs[0][framePos], &outputs[1][framePos], framesToRender, 0);
+            if (!isOversamplerActive) {
+                tsf_render_float_separate(tsfPtr, &outputs[0][framePos], &outputs[1][framePos], framesToRender, 0);
+            } else {
+                float *outputOffset[2] = {&outputs[0][framePos], &outputs[1][framePos]};
+                // TODO Replace with something that doesn't allocate
+                overSampler.ProcessBlock(outputOffset, outputOffset, framesToRender, 2, 2, [&](sample** inputs_func, sample** outputs_func, int framesToRender_func) {
+                    tsf_render_float_separate(tsfPtr, outputs_func[0], outputs_func[1], framesToRender_func, 0);
+                });
+            }
 #else
 #error Double rendering not supported
 #endif
@@ -674,6 +686,20 @@ void TinySoundFontPlayer::OnIdle()
             displayDirty = false;
         }
     }
+
+    // Have to set this here to avoid deallocating memory while it is in use during rendering
+    if (oversamplingDirty) {
+        isOversamplerActive = newOversamp != EFactor::kNone;
+        overSampler.SetOverSampling(newOversamp);
+        
+        tsf* tsfPtr = gTSFAtomic.load(std::memory_order_acquire);
+        
+        if (tsfPtr) {
+            tsf_set_output(tsfPtr, TSF_STEREO_UNWEAVED, GetSampleRate() * (double)overSampler.GetRate(), 0);
+        }
+        
+        oversamplingDirty = false;
+    }
 }
 
 void TinySoundFontPlayer::OnReset()
@@ -687,7 +713,7 @@ void TinySoundFontPlayer::OnReset()
     tsf* tsfPtr = gTSFAtomic.load(std::memory_order_acquire);
     if (tsfPtr)
     {
-        tsf_set_output(tsfPtr, TSF_STEREO_UNWEAVED, GetSampleRate(), 0);
+        tsf_set_output(tsfPtr, TSF_STEREO_UNWEAVED, GetSampleRate() * (double)overSampler.GetRate(), 0);
 #ifdef MAXVOICES
         // TODO consider making this changeable
         tsf_set_max_voices(tsfPtr, MAXVOICES);
@@ -736,6 +762,13 @@ void TinySoundFontPlayer::OnParamChange(int paramIdx)
       {
         tsfPtr->interpolateMode = intMode;
       }
+      break;
+    }
+    case kParamOversampling:
+    {
+      EFactor factor = static_cast<EFactor>(value);
+      newOversamp = factor;
+      oversamplingDirty = true;
       break;
     }
     /*case kParamSustain:

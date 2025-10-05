@@ -4,6 +4,7 @@
 #include "IControls.h"
 #include "tsf.h"
 #include "Smoothers.h"
+#include "Oversampler.h"
 
 // TODO Linking issue is preventing this from compiling on macOS, fix later
 //#ifndef __APPLE__
@@ -35,6 +36,7 @@ enum EParams
   //kParamLFORateMode,
   //kParamLFODepth,
   kParamInterpolation,
+  kParamOversampling,
   kNumParams
 };
 
@@ -126,5 +128,12 @@ private:
   WDL_PtrList<double> mModulations; // Ptrlist for global modulations
   LogParamSmooth<double, kNumModulations> mParamSmoother;
   double mParamsToSmooth[kNumModulations];
+
+  // TODO We don't actually need the two inputs, but bad things happen without them.
+  // It would be faster if we could remove them.
+  OverSampler<sample> overSampler = OverSampler<sample>(EFactor::kNone, true, 2, 2);
+  bool isOversamplerActive = false;
+  bool oversamplingDirty = false;
+  EFactor newOversamp = EFactor::kNone;
 #endif
 };
