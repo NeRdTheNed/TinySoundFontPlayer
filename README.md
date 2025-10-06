@@ -13,13 +13,14 @@ Currently only the AudioUnit build has been tested on ARM macOS, so please repor
   - Linear (default)
   - 4 point Watte, cubic Hermite, Lagrange, bspline
   - 6 point cubic Hermite, Lagrange, bspline
-- Oversampling support (none, 2x, 4x, 8x, 16x)
+- Pseudo-oversampling support (none, 2x, 4x, 8x, 16x)
 - Responds well to standard MIDI control messages
 
 ## Known issues
 
 - MIDI pan / modulators which influence panning are not currently working due to bugs.
 - SoundFont filter features / modulators which influence SoundFont filter are not currently working due to bugs.
+- TinySoundFont has some known issues related to attenuation levels and envelope behaviour. Notable current issues are schellingb/TinySoundFont#94, schellingb/TinySoundFont#95, schellingb/TinySoundFont#96, schellingb/TinySoundFont#97.
 
 ## License
 

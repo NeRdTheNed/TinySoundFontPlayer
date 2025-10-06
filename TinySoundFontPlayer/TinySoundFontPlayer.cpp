@@ -398,7 +398,7 @@ TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
 {
     GetParam(kParamGain)->InitDouble("Gain", 100., 0., 100.0, 0.01, "%");
     GetParam(kParamInterpolation)->InitEnum("Sample interpolation", TSF_INTERP_LINEAR, {TSFP_INTERP_VALIST});
-    GetParam(kParamOversampling)->InitEnum("Oversampling", EFactor::kNone, {OVERSAMPLING_FACTORS_VA_LIST});
+    GetParam(kParamOversampling)->InitEnum("Pseudo-oversampling", EFactor::kNone, {OVERSAMPLING_FACTORS_VA_LIST});
 
 #if IPLUG_EDITOR
     mMakeGraphicsFunc = [&]() {
@@ -524,7 +524,7 @@ TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
 
         pGraphics->AttachControl(new IVMenuButtonControl(buttonBoundsLowerLowerLower, kParamInterpolation, "Sample interpolation"));
 
-        pGraphics->AttachControl(new IVMenuButtonControl(buttonBoundsLowerLowerLowerRight, kParamOversampling, "Oversampling"));
+        pGraphics->AttachControl(new IVMenuButtonControl(buttonBoundsLowerLowerLowerRight, kParamOversampling, "Pseudo-oversampling"));
     };
 #endif
 

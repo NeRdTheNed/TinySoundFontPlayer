@@ -1926,7 +1926,9 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 	if (dynamicGain) tmpModLfoToVolume = (float)region->modLfoToVolume * 0.1f;
 	else noteGain = tsf_decibelsToGain(v->noteGainDB), tmpModLfoToVolume = 0;
 
+#ifndef TSF_ONLY_UNWEAVED
 	enum TSFOutputMode outputMode = f->outputmode;
+#endif
 	enum TSFInterpolateMode interpMode = f->interpolateMode;
 
 	while (numSamples)
