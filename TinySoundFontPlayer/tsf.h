@@ -1475,11 +1475,13 @@ static void tsf_voice_envelope_nextsegment(struct tsf_voice_envelope* e, short a
 			e->samplesUntilNextSegment = (int)(e->parameters.attack * outSampleRate);
 			if (e->samplesUntilNextSegment > 0)
 			{
+#ifdef TSF_UNFIX_MODATTENV
 				if (!e->isAmpEnv)
 				{
 					//mod env attack duration scales with velocity (velocity of 1 is full duration, max velocity is 0.125 times duration)
 					e->samplesUntilNextSegment = (int)(e->parameters.attack * ((145 - e->midiVelocity) / 144.0f) * outSampleRate);
 				}
+#endif
 				e->segment = TSF_SEGMENT_ATTACK;
 				e->segmentIsExponential = TSF_FALSE;
 				e->level = 0.0f;
@@ -1581,6 +1583,13 @@ static void tsf_voice_envelope_setup(struct tsf_voice_envelope* e, struct tsf_en
 
 static void tsf_voice_envelope_process(struct tsf_voice_envelope* e, int numSamples, float outSampleRate)
 {
+#ifndef TSF_UNFIX_MODATTENV
+	if ((e->segment == TSF_SEGMENT_ATTACK) && !e->isAmpEnv)
+	{
+		float curve = ((float)(e->samplesUntilNextSegment - numSamples)) * e->slope;
+		e->level = tsf_curve_convex(1.0f - curve);
+	} else
+#endif
 	if (e->slope)
 	{
 		if (e->segmentIsExponential) e->level *= TSF_POWF(e->slope, (float)numSamples);
