@@ -582,7 +582,7 @@ void TinySoundFontPlayer::ProcessBlock(sample** inputs, sample** outputs, int nF
                 tsf_render_float_separate(tsfPtr, &outputs[0][framePos], &outputs[1][framePos], framesToRender, 0);
             } else {
                 float *outputOffset[2] = {&outputs[0][framePos], &outputs[1][framePos]};
-                // TODO Replace with something that doesn't allocate
+                // TODO Replace with something that doesn't allocate - may cause audible issues
                 overSampler.ProcessBlock(outputOffset, outputOffset, framesToRender, 2, 2, [&](sample** inputs_func, sample** outputs_func, int framesToRender_func) {
                     tsf_render_float_separate(tsfPtr, outputs_func[0], outputs_func[1], framesToRender_func, 0);
                 });
@@ -771,8 +771,12 @@ void TinySoundFontPlayer::OnParamChange(int paramIdx)
     case kParamOversampling:
     {
       EFactor factor = static_cast<EFactor>(value);
-      newOversamp = factor;
-      oversamplingDirty = true;
+      
+      if (factor != overSampler.RateToFactor(overSampler.GetRate()))
+      {
+        newOversamp = factor;
+        oversamplingDirty = true;
+      }
       break;
     }
     /*case kParamSustain:
