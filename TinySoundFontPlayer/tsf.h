@@ -1588,6 +1588,9 @@ static void tsf_voice_envelope_process(struct tsf_voice_envelope* e, int numSamp
 	{
 		float curve = ((float)(e->samplesUntilNextSegment - numSamples)) * e->slope;
 		e->level = tsf_curve_convex(1.0f - curve);
+
+		if (e->level < 0.0f) e->level = 0.0f;
+		else if (e->level > 1.0f) e->level = 1.0f;
 	} else
 #endif
 	if (e->slope)
