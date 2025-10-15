@@ -25,6 +25,8 @@
 #define TSF_ONLY_UNWEAVED
 // TODO the only reason we have to use this is because the release envelope isn't updated fast enough if it's 0, see if we can add a special case for that?
 #define TSF_RENDER_EFFECTSAMPLEBLOCK 1
+// TODO think about TSF_FASTRELEASETIME
+#define TSF_STATIC
 #include "tsf.h"  // TinySoundFont header
 
 #include "TinySoundFontPlayer.h"
