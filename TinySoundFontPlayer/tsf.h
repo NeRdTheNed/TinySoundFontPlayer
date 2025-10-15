@@ -1,9 +1,3 @@
-// TODO workaround for issue with M_LN10
-#define _USE_MATH_DEFINES
-#ifndef M_LN10
-#define M_LN10 2.30258509299404568401799145468436420760110148862877297603332790096757260967
-#endif
-
 /* TinySoundFont - v0.9 - SoundFont2 synthesizer - https://github.com/schellingb/TinySoundFont
 									 no warranty implied; use at your own risk
    Do this:
@@ -325,6 +319,7 @@ TSFDEF float tsf_channel_get_tuning(tsf* f, int channel);
 #endif
 
 #if !defined(TSF_POW) || !defined(TSF_POWF) || !defined(TSF_EXPF) || !defined(TSF_LOG) || !defined(TSF_TAN) || !defined(TSF_LOG10) || !defined(TSF_SQRT)
+#  define _USE_MATH_DEFINES
 #  include <math.h>
 #  if !defined(__cplusplus) && !defined(NAN) && !defined(powf) && !defined(expf) && !defined(sqrtf)
 #    define powf (float)pow // deal with old math.h
@@ -338,6 +333,14 @@ TSFDEF float tsf_channel_get_tuning(tsf* f, int channel);
 #  define TSF_TAN     tan
 #  define TSF_LOG10   log10
 #  define TSF_SQRTF   sqrtf
+#endif
+
+#ifndef TSF_MLN10
+#  ifdef M_LN10
+#    define TSF_MLN10 M_LN10
+#  else
+#    define TSF_MLN10 2.30258509299404568401799145468436420760110148862877297603332790096757260967
+#  endif
 #endif
 
 #ifndef TSF_NO_STDIO
@@ -1312,9 +1315,70 @@ static int tsf_register_samples(tsf* res, struct tsf_hydra * hydra) {
 //----------------------- synthesizer
 static double tanFromCents[12000];
 
+#if TSF_SLOWER_BUT_SLIGHTLY_MORE_ACCURATE_CURVE
+// 10 to the power of -960/400
+#define TSF_TEN_POW_NEG_960_OVER_400 0.00398107170553497250770252305087752043487677037297380446865284148060224853
+
 static float tsf_curve_convex(float value) {
-	return value < 0.001 ? 0.0 : value > 0.999 ? 1.0 : 1 - (-200.0L * 2 / 960.0f) * logl(value) / M_LN10;
+	// The previous function used for convex / concave curves was
+	//return value < 0.001 ? 0.0 : value > 0.999 ? 1.0 : 1 - (-200.0L * 2 / 960.0f) * logl(value) / TSF_MLN10;
+	// This had the issue of going to negative infinity when the input was smaller than ~0.00398107.
+	// The check for value < 0.001 could be adjusted to fix this, but it was cleaner to adjust the curve so this is not needed.
+	// However, this is a little slower than the previous function.
+	// See https://www.desmos.com/calculator/d2tvhmr5th
+	// Thanks to 1011 for helping with this math.
+	return value < 0.0 ? 0.0 : value > 1.0 ? 1.0 : 1 - (-200.0L * 2 / 960.0f) * logl(((1 - TSF_TEN_POW_NEG_960_OVER_400) * value) + TSF_TEN_POW_NEG_960_OVER_400) / TSF_MLN10;
 }
+#else
+// Small lookup table generated from the above adjusted curve for speed.
+#define TSF_CURVE_TABLE_SIZE 128
+const float tsf_curve_table[TSF_CURVE_TABLE_SIZE] = {
+	0x0p+0F, 0x1.936ae2p-3F, 0x1.27fd46p-2F, 0x1.662d2cp-2F,
+	0x1.94a7c2p-2F, 0x1.b9c84ep-2F, 0x1.d8b2aep-2F, 0x1.f32f7cp-2F,
+	0x1.052d9p-1F, 0x1.0f7968p-1F, 0x1.18bd68p-1F, 0x1.21299ap-1F,
+	0x1.28e204p-1F, 0x1.300254p-1F, 0x1.36a04ap-1F, 0x1.3ccd4ap-1F,
+	0x1.429774p-1F, 0x1.480a6cp-1F, 0x1.4d2fe4p-1F, 0x1.521002p-1F,
+	0x1.56b1b8p-1F, 0x1.5b1af6p-1F, 0x1.5f50ep-1F, 0x1.6357eep-1F,
+	0x1.673404p-1F, 0x1.6ae896p-1F, 0x1.6e78acp-1F, 0x1.71e6fap-1F,
+	0x1.7535ecp-1F, 0x1.7867a8p-1F, 0x1.7b7e24p-1F, 0x1.7e7b2p-1F,
+	0x1.816034p-1F, 0x1.842ed4p-1F, 0x1.86e85p-1F, 0x1.898dep-1F,
+	0x1.8c20ap-1F, 0x1.8ea19p-1F, 0x1.9111a4p-1F, 0x1.9371b8p-1F,
+	0x1.95c298p-1F, 0x1.980502p-1F, 0x1.9a39a6p-1F, 0x1.9c612ap-1F,
+	0x1.9e7c26p-1F, 0x1.a08b28p-1F, 0x1.a28eb4p-1F, 0x1.a48748p-1F,
+	0x1.a6755ap-1F, 0x1.a85958p-1F, 0x1.aa33a6p-1F, 0x1.ac04a8p-1F,
+	0x1.adccbap-1F, 0x1.af8c32p-1F, 0x1.b1435ep-1F, 0x1.b2f29p-1F,
+	0x1.b49a0ep-1F, 0x1.b63a2p-1F, 0x1.b7d304p-1F, 0x1.b964fap-1F,
+	0x1.baf03ep-1F, 0x1.bc7506p-1F, 0x1.bdf38ap-1F, 0x1.bf6bfcp-1F,
+	0x1.c0de8ap-1F, 0x1.c24b68p-1F, 0x1.c3b2bcp-1F, 0x1.c514b4p-1F,
+	0x1.c67178p-1F, 0x1.c7c92ep-1F, 0x1.c91bfcp-1F, 0x1.ca6a04p-1F,
+	0x1.cbb368p-1F, 0x1.ccf848p-1F, 0x1.ce38c6p-1F, 0x1.cf74fep-1F,
+	0x1.d0ad0cp-1F, 0x1.d1e10cp-1F, 0x1.d3111ap-1F, 0x1.d43d5p-1F,
+	0x1.d565c4p-1F, 0x1.d68a8ep-1F, 0x1.d7abc8p-1F, 0x1.d8c986p-1F,
+	0x1.d9e3dcp-1F, 0x1.dafaep-1F, 0x1.dc0ea6p-1F, 0x1.dd1f4p-1F,
+	0x1.de2cc2p-1F, 0x1.df373cp-1F, 0x1.e03ecp-1F, 0x1.e1436p-1F,
+	0x1.e2452ap-1F, 0x1.e3442ep-1F, 0x1.e4407cp-1F, 0x1.e53a22p-1F,
+	0x1.e6312ep-1F, 0x1.e725aep-1F, 0x1.e817bp-1F, 0x1.e9074p-1F,
+	0x1.e9f46ap-1F, 0x1.eadf3cp-1F, 0x1.ebc7cp-1F, 0x1.ecae02p-1F,
+	0x1.ed920ep-1F, 0x1.ee73eep-1F, 0x1.ef53acp-1F, 0x1.f03152p-1F,
+	0x1.f10cecp-1F, 0x1.f1e682p-1F, 0x1.f2be1ep-1F, 0x1.f393c8p-1F,
+	0x1.f4678ap-1F, 0x1.f5396cp-1F, 0x1.f60976p-1F, 0x1.f6d7b2p-1F,
+	0x1.f7a426p-1F, 0x1.f86edcp-1F, 0x1.f937dap-1F, 0x1.f9ff26p-1F,
+	0x1.fac4cap-1F, 0x1.fb88ccp-1F, 0x1.fc4b34p-1F, 0x1.fd0c06p-1F,
+	0x1.fdcb4ap-1F, 0x1.fe8906p-1F, 0x1.ff454p-1F, 0x1p+0F
+};
+
+static float tsf_curve_convex(float value) {
+	if (value <= 0.0f)
+		return 0.0f;
+	if (value >= 1.0f)
+		return 1.0f;
+
+	float curvepos = value * (TSF_CURVE_TABLE_SIZE - 1);
+	unsigned int pos = (unsigned int)curvepos;
+	float alpha = (float)(curvepos - pos);
+	return (tsf_curve_table[pos] * (1.0f - alpha) + tsf_curve_table[pos + 1] * alpha);
+}
+#endif
 
 static float tsf_curve_concave(float value) {
 	return 1 - tsf_curve_convex(1 - value);
@@ -1588,9 +1652,6 @@ static void tsf_voice_envelope_process(struct tsf_voice_envelope* e, int numSamp
 	{
 		float curve = ((float)(e->samplesUntilNextSegment - numSamples)) * e->slope;
 		e->level = tsf_curve_convex(1.0f - curve);
-
-		if (e->level < 0.0f) e->level = 0.0f;
-		else if (e->level > 1.0f) e->level = 1.0f;
 	} else
 #endif
 	if (e->slope)
