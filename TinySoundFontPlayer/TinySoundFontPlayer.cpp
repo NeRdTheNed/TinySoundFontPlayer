@@ -393,11 +393,20 @@ void TinySoundFontPlayer::PopulatePresetMenu()
     }
 }
 
+void initTsfLut() {
+    static std::once_flag alreadyInitTSFLut;
+    std::call_once(alreadyInitTSFLut, []() {
+        tsf_init_lut();
+    });
+}
+
 #define TSFP_INTERP_VALIST "None", "Linear", "4 point Watte", "4 point cubic Hermite", "4 point Lagrange", "4 point B-spline", "6 point cubic Hermite", "6 point Lagrange", "6 point B-spline"
 
 TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
 : iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets))
 {
+    initTsfLut();
+
     GetParam(kParamGain)->InitDouble("Gain", 100., 0., 100.0, 0.01, "%");
     GetParam(kParamInterpolation)->InitEnum("Sample interpolation", TSF_INTERP_LINEAR, {TSFP_INTERP_VALIST});
     GetParam(kParamOversampling)->InitEnum("Pseudo-oversampling", EFactor::kNone, {OVERSAMPLING_FACTORS_VA_LIST});

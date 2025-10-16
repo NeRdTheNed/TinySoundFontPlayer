@@ -19,8 +19,7 @@ Currently only the AudioUnit build has been tested on ARM macOS, so please repor
 ## Known issues
 
 - MIDI pan / modulators which influence panning are not currently working due to bugs.
-- SoundFont filter features / modulators which influence SoundFont filter are not currently working due to bugs.
-- TinySoundFont has some known issues related to attenuation levels and envelope behaviour. Notable current issues are schellingb/TinySoundFont#94, schellingb/TinySoundFont#95, schellingb/TinySoundFont#96, schellingb/TinySoundFont#97.
+- TinySoundFont has some known issues related to attenuation levels and envelope behaviour. Notable current issues are schellingb/TinySoundFont#95, schellingb/TinySoundFont#96, schellingb/TinySoundFont#97.
 
 ## License
 

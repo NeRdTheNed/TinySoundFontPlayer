@@ -2074,7 +2074,7 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 					}
 
 					// Low-pass filter.
-					//if (tmpLowpass.active) val = tsf_voice_lowpass_process(&tmpLowpass, val);
+					if (tmpLowpass.active) val = tsf_voice_lowpass_process(&tmpLowpass, val);
 
 					*outL++ += val * gainLeft;
 					*outL++ += val * gainRight;
@@ -2123,7 +2123,7 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 					}
 
 					// Low-pass filter.
-					//if (tmpLowpass.active) val = tsf_voice_lowpass_process(&tmpLowpass, val);
+					if (tmpLowpass.active) val = tsf_voice_lowpass_process(&tmpLowpass, val);
 
 					*outL++ += val * gainLeft;
 					*outR++ += val * gainRight;
@@ -2171,7 +2171,7 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 					}
 
 					// Low-pass filter.
-					//if (tmpLowpass.active) val = tsf_voice_lowpass_process(&tmpLowpass, val);
+					if (tmpLowpass.active) val = tsf_voice_lowpass_process(&tmpLowpass, val);
 
 					*outL++ += val * gainMono;
 
