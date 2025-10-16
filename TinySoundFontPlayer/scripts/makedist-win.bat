@@ -77,11 +77,11 @@ REM - Could build individual targets like this:
 REM - msbuild TinySoundFontPlayer-app.vcxproj /p:configuration=release /p:platform=win32
 
 REM echo Building 32 bit binaries...
-msbuild TinySoundFontPlayer.sln /t:TinySoundFontPlayer-app;TinySoundFontPlayer-vst3;TinySoundFontPlayer-vst2 /p:configuration=release /p:platform=win32 /nologo /verbosity:minimal /fileLogger /m /flp:logfile=build-win.log;errorsonly
+msbuild TinySoundFontPlayer.sln /t:TinySoundFontPlayer-app;TinySoundFontPlayer-vst3 /p:configuration=release /p:platform=win32 /nologo /verbosity:minimal /fileLogger /m /flp:logfile=build-win.log;errorsonly
 
 REM echo Building 64 bit binaries...
 REM add projects with /t to build VST2 and AAX
-msbuild TinySoundFontPlayer.sln /t:TinySoundFontPlayer-app;TinySoundFontPlayer-vst3;TinySoundFontPlayer-clap;TinySoundFontPlayer-vst2 /p:configuration=release /p:platform=x64 /nologo /verbosity:minimal /fileLogger /m /flp:logfile=build-win.log;errorsonly;append
+msbuild TinySoundFontPlayer.sln /t:TinySoundFontPlayer-app;TinySoundFontPlayer-vst3;TinySoundFontPlayer-clap /p:configuration=release /p:platform=x64 /nologo /verbosity:minimal /fileLogger /m /flp:logfile=build-win.log;errorsonly;append
 
 REM --echo Copying AAX Presets
 

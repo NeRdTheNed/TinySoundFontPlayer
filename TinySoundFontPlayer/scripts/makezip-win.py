@@ -43,13 +43,11 @@ def main():
     files = [
       projectpath + "\\build-win\\TinySoundFontPlayer.vst3\\Contents\\x86_64-win\\TinySoundFontPlayer.vst3",
       projectpath + "\\build-win\\TinySoundFontPlayer_x64.exe",
-      projectpath + "\\build-win\\TinySoundFontPlayer_x64.dll",
       projectpath + "\\build-win\\TinySoundFontPlayer.clap"
     ]
     files32 = [
       projectpath + "\\build-win\\TinySoundFontPlayer.vst3\\Contents\\x86-win\\TinySoundFontPlayer.vst3",
-      projectpath + "\\build-win\\TinySoundFontPlayer_Win32.exe",
-      projectpath + "\\build-win\\TinySoundFontPlayer_Win32.dll"
+      projectpath + "\\build-win\\TinySoundFontPlayer_Win32.exe"
     ]
 
   zipname = get_archive_name(projectpath, "win", "demo" if demo == 1 else "full" )
