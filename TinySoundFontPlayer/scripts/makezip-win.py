@@ -25,6 +25,7 @@ def main():
   os.makedirs(dir)
   
   files = []
+  files32 = []
 
   if not zip:
     installer = "\\build-win\\installer\\TinySoundFontPlayer Installer.exe"
@@ -42,7 +43,13 @@ def main():
     files = [
       projectpath + "\\build-win\\TinySoundFontPlayer.vst3\\Contents\\x86_64-win\\TinySoundFontPlayer.vst3",
       projectpath + "\\build-win\\TinySoundFontPlayer_x64.exe",
+      projectpath + "\\build-win\\TinySoundFontPlayer_x64.dll",
       projectpath + "\\build-win\\TinySoundFontPlayer.clap"
+    ]
+    files32 = [
+      projectpath + "\\build-win\\TinySoundFontPlayer.vst3\\Contents\\x86-win\\TinySoundFontPlayer.vst3",
+      projectpath + "\\build-win\\TinySoundFontPlayer_Win32.exe",
+      projectpath + "\\build-win\\TinySoundFontPlayer_Win32.dll"
     ]
 
   zipname = get_archive_name(projectpath, "win", "demo" if demo == 1 else "full" )
@@ -50,8 +57,12 @@ def main():
   zf = zipfile.ZipFile(projectpath + "\\build-win\\out\\" + zipname + ".zip", mode="w")
 
   for f in files:
-    print("adding " + f)
-    zf.write(f, os.path.basename(f), zipfile.ZIP_DEFLATED)
+    print("adding 64bit " + f)
+    zf.write(f, "x86_64/" + os.path.basename(f), zipfile.ZIP_DEFLATED)
+
+  for f in files32:
+    print("adding 32bit " + f)
+    zf.write(f, "x86/" + os.path.basename(f), zipfile.ZIP_DEFLATED)
 
   zf.close()
   print("wrote " + zipname)
