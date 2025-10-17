@@ -2022,7 +2022,14 @@ TSFDEF void tsf_voice_render_separate(tsf* f, struct tsf_voice* v, float* output
 		if (dynamicGain)
 			noteGain = tsf_decibelsToGain(v->noteGainDB + (v->modlfo.level * tmpModLfoToVolume));
 
-		gainMono = noteGain * v->ampenv.level;
+		// TODO Replace this with something more efficient
+		// TODO Check if attenuation values are actually correct
+		float tempGain = noteGain;
+
+		if (dynamicLowpass)
+			tempGain = tsf_decibelsToGain(tsf_gainToDecibels(noteGain) - (tmpInitialFilterQ * (0.1f/2.0f)));
+
+		gainMono = tempGain * v->ampenv.level;
 
 		// Update EG.
 		tsf_voice_envelope_process(&v->ampenv, blockSamples, tmpSampleRate);
