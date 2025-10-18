@@ -847,7 +847,7 @@ static void tsf_region_envtosecs(struct tsf_envelope* p, TSF_BOOL sustainIsGain)
 	if (!p->keynumToDecay) p->decay = (p->decay < -11950.0f ? 0.0f : tsf_timecents2Secsf(p->decay));
 
 	if (p->sustain < 0.0f) p->sustain = 0.0f;
-	else if (sustainIsGain) p->sustain = tsf_decibelsToGain(-p->sustain);
+	else if (sustainIsGain) p->sustain = tsf_decibelsToGain(-p->sustain * 10.0f);
 	else p->sustain = 1.0f - p->sustain;
 }
 
