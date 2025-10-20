@@ -279,6 +279,22 @@ void TinySoundFontPlayer::loadDefaultPres() {
 
     if (!mPresets.empty()) {
         PresetData pd = mPresets.front();
+
+        if (pd.bank > 0 || pd.preset_index > 0) {
+            for (size_t i = 0; i < mPresets.size(); ++i) {
+                if (mPresets[i].bank < pd.bank) {
+                    pd = mPresets[i];
+                    continue;
+                }
+
+                if (mPresets[i].bank == pd.bank) {
+                    if (mPresets[i].preset_index < pd.preset_index) {
+                        pd = mPresets[i];
+                    }
+                }
+            }
+        }
+
         mCurrentPresetIdx = 0;
         mCurrentPresetIdxReal = pd.preset_index;
         mCurrentPresetBank = pd.bank;
