@@ -233,7 +233,7 @@ int TinySoundFontPlayer::UnserializeState(const IByteChunk& chunk, int startPos)
 
             //tsf_channel_set_bank_preset(gTSFAtomic.load(std::memory_order_acquire), 0, mCurrentPresetBank, mCurrentPresetNumber);
           tsf_channel_set_bank(gTSFAtomic.load(std::memory_order_acquire), 0, mCurrentPresetBank);
-          tsf_channel_set_presetnumber(gTSFAtomic.load(std::memory_order_acquire), 0, mCurrentPresetNumber, mCurrentPresetBank >= 127);
+          tsf_channel_set_presetnumber(gTSFAtomic.load(std::memory_order_acquire), 0, mCurrentPresetNumber, mCurrentPresetBank == 128);
         }
         else
         {
@@ -288,7 +288,7 @@ void TinySoundFontPlayer::loadDefaultPres() {
 
         //tsf_channel_set_bank_preset(gTSFAtomic.load(std::memory_order_acquire), 0, mCurrentPresetBank, mCurrentPresetNumber);
         tsf_channel_set_bank(f, 0, mCurrentPresetBank);
-        tsf_channel_set_presetnumber(f, 0, mCurrentPresetNumber, mCurrentPresetBank >= 127);
+        tsf_channel_set_presetnumber(f, 0, mCurrentPresetNumber, mCurrentPresetBank == 128);
     }
 }
 
@@ -369,7 +369,7 @@ void TinySoundFontPlayer::PopulatePresetMenu()
         int preset = 0;
 
         // find bank/preset number
-        for (int b = 0; b <= 127; ++b)
+        for (int b = 0; b <= 128; ++b)
         {
             for (int p = 0; p <= 127; ++p)
             {
@@ -508,7 +508,7 @@ TinySoundFontPlayer::TinySoundFontPlayer(const InstanceInfo& info)
 
                     //tsf_channel_set_bank_preset(gTSFAtomic.load(std::memory_order_acquire), 0, mCurrentPresetBank, mCurrentPresetNumber);
                     tsf_channel_set_bank(gTSFAtomic.load(std::memory_order_acquire), 0, this->mCurrentPresetBank);
-                    tsf_channel_set_presetnumber(gTSFAtomic.load(std::memory_order_acquire), 0, this->mCurrentPresetNumber, this->mCurrentPresetBank >= 127);
+                    tsf_channel_set_presetnumber(gTSFAtomic.load(std::memory_order_acquire), 0, this->mCurrentPresetNumber, this->mCurrentPresetBank == 128);
 
                 }
             });
@@ -639,7 +639,7 @@ void TinySoundFontPlayer::ProcessBlock(sample** inputs, sample** outputs, int nF
                         syncPresState();
                         //tsf_channel_set_presetnumber(tsfPtr, ch, msg.Program(), (ch == 9));
                         //tsf_channel_set_presetnumber(gTSFAtomic.load(std::memory_order_acquire), 0, mCurrentPresetIdxReal, mCurrentPresetBank >= 128);
-                        tsf_channel_set_presetnumber(tsfPtr, ch, msg.Program(), mCurrentPresetBank >= 127 || (ch == 9));
+                        tsf_channel_set_presetnumber(tsfPtr, ch, msg.Program(), mCurrentPresetBank == 128 || (ch == 9));
                         break;
                 }
 
