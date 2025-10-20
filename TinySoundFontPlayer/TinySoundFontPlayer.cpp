@@ -132,6 +132,10 @@ const static unsigned char MinimalSoundFont[] =
 
 int TinySoundFontPlayer::FindPresetIndex(int bank, int presetNumber) const
 {
+    if (mPresets.empty()) {
+        return -1;
+    }
+
     for (size_t i = 0; i < mPresets.size(); ++i)
     {
         if (mPresets[i].bank == bank && mPresets[i].preset_number == presetNumber)
@@ -280,7 +284,8 @@ void TinySoundFontPlayer::loadDefaultPres() {
     if (!mPresets.empty()) {
         PresetData pd = mPresets.front();
 
-        if (pd.bank > 0 || pd.preset_index > 0) {
+        // TODO There's probably a better way to do this
+        if (pd.bank > 0 || pd.preset_number > 0) {
             for (size_t i = 0; i < mPresets.size(); ++i) {
                 if (mPresets[i].bank < pd.bank) {
                     pd = mPresets[i];
@@ -288,7 +293,7 @@ void TinySoundFontPlayer::loadDefaultPres() {
                 }
 
                 if (mPresets[i].bank == pd.bank) {
-                    if (mPresets[i].preset_index < pd.preset_index) {
+                    if (mPresets[i].preset_number < pd.preset_number) {
                         pd = mPresets[i];
                     }
                 }
