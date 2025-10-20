@@ -289,10 +289,7 @@ void TinySoundFontPlayer::loadDefaultPres() {
             for (size_t i = 0; i < mPresets.size(); ++i) {
                 if (mPresets[i].bank < pd.bank) {
                     pd = mPresets[i];
-                    continue;
-                }
-
-                if (mPresets[i].bank == pd.bank) {
+                } else if (mPresets[i].bank == pd.bank) {
                     if (mPresets[i].preset_number < pd.preset_number) {
                         pd = mPresets[i];
                     }
